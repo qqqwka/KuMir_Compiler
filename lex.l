@@ -1,178 +1,153 @@
 %option noyywrap
 %option never-interactive
+%option stack
 
-DIGIT [0-9]
 
+%x END_OF_LINE_COMMENT
 
-%x CHAR
-%x STRING
-%x ML_COMMENT
-%x SHIELD_STRING
 
 %{
 	#include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
-    #include <iostream>
     #include <string>
     #include <ctype.h>
-	
-	//#pragma warning(disable: 4996)
-	
 	#include <clocale>
-	
     using namespace std;
+    
 	
-    //#include <cstdlib>  
-
-	//#include <Windows.h>
-	//#undef min
-	//#undef max
-
-
     char str[1024];
     string stdstr = "";
     int lineNumber = 1;
     int octothorpeCount = 0;
 %}
-
 %%
-
 %{
-    void removeUnderline();
-    void removeType(char *typeName);
-	void convertCharacterCodeToString(char characterCode[], int startPosition, char *string);
+    char bufferString[20480]; // Массив символов - буфер для строковых выражений.
+    int line = 1;
+    int multilineBegin;
 %}
-
 \n { lineNumber++; }
 " " { }
 
-алг { printf("Found KW_ALG: %s\n", yytext); }
-нач { printf("Found KW_NACH: %s\n", yytext); }
-кон { printf("Found KW_KON: %s\n", yytext); }
-исп { printf("Found KW_ISP: %s\n", yytext); }
-кон_исп { printf("Found KW_KON_ISP: %s\n", yytext); }
-дано { printf("Found KW_DANO: %s\n", yytext); }
-надо { printf("Found KW_NADO: %s\n", yytext); }
-арг { printf("Found KW_ARG: %s\n", yytext); }
-рез { printf("Found KW_REZ: %s\n", yytext); }
-аргрез { printf("Found KW_ARGREZ: %s\n", yytext); }
-знач { printf("Found KW_ZNACH: %s\n", yytext); }
-таб { printf("Found KW_TAB: %s\n", yytext); }
-целтаб { printf("Found KW_CELTAB: %s\n", yytext); }
-вещтаб { printf("Found KW_VESHTAB: %s\n", yytext); }
-логтаб { printf("Found KW_LOGTAB: %s\n", yytext); }
-литтаб { printf("Found KW_LITTAB: %s\n", yytext); }
-и { printf("Found KW_I: %s\n", yytext); }
-или { printf("Found KW_ILI: %s\n", yytext); }
-не { printf("Found KW_NE: %s\n", yytext); }
-да { printf("Found KW_DA: %s\n", yytext); }
-нет { printf("Found KW_NET: %s\n", yytext); }
-утв { printf("Found KW_UTV: %s\n", yytext); }
-выход { printf("Found KW_VIHOD: %s\n", yytext); }
-ввод { printf("Found KW_VVOD: %s\n", yytext); }
-вывод { printf("Found KW_VIVOD: %s\n", yytext); }
-нс { printf("Found KW_NS: %s\n", yytext); }
-если { printf("Found KW_ESLI: %s\n", yytext); }
-то { printf("Found KW_TO: %s\n", yytext); }
-иначе { printf("Found KW_INACHE: %s\n", yytext); }
-все { printf("Found KW_VSE: %s\n", yytext); }
-выбор { printf("Found KW_VIBOR: %s\n", yytext); }
-при { printf("Found KW_PRI: %s\n", yytext); }
-нц { printf("Found KW_NC: %s\n", yytext); }
-кц { printf("Found KW_KC: %s\n", yytext); }
-кц_при { printf("Found KW_KC_PRI: %s\n", yytext); }
-раз { printf("Found KW_RAZ: %s\n", yytext); }
-пока { printf("Found KW_POKA: %s\n", yytext); }
-для { printf("Found KW_DLYA: %s\n", yytext); }
-от { printf("Found KW_OT: %s\n", yytext); }
-до { printf("Found KW_DO: %s\n", yytext); }
-шаг { printf("Found KW_SHAG: %s\n", yytext); }
+алг { printf("%s - KW_ALG\n", yytext); }
+нач { printf("%s - KW_NACH\n", yytext); }
+кон { printf("%s - KW_KON\n", yytext); }
+исп { printf("%s - KW_ISP\n", yytext); }
+кон_исп { printf("%s - KW_KON_ISP\n", yytext); }
+дано { printf("%s - KW_DANO\n", yytext); }
+надо { printf("%s - KW_NADO\n", yytext); }
+арг { printf("%s - KW_ARG\n", yytext); }
+рез { printf("%s - KW_REZ\n", yytext); }
+аргрез { printf("%s - KW_ARGREZ\n", yytext); }
+знач { printf("%s - KW_ZNACH\n", yytext); }
+таб { printf("%s - KW_TAB\n", yytext); }
+целтаб { printf("%s - KW_CELTAB\n", yytext); }
+вещтаб { printf("%s - KW_VESHTAB\n", yytext); }
+логтаб { printf("%s - KW_LOGTAB\n", yytext); }
+литтаб { printf("%s - KW_LITTAB\n", yytext); }
+и { printf("%s - KW_I\n", yytext); }
+или { printf("%s - KW_ILI\n", yytext); }
+не { printf("%s - KW_NE\n", yytext); }
+да { printf("%s - KW_DA\n", yytext); }
+нет { printf("%s - KW_NET\n", yytext); }
+утв { printf("%s - KW_UTV\n", yytext); }
+выход { printf("%s - KW_VIHOD\n", yytext); }
+ввод { printf("%s - KW_VVOD\n", yytext); }
+вывод { printf("%s - KW_VIVOD\n", yytext); }
+нс { printf("%s - KW_NS\n", yytext); }
+если { printf("%s - KW_ESLI\n", yytext); }
+то { printf("%s - KW_TO\n", yytext); }
+иначе { printf("%s - KW_INACHE\n", yytext); }
+все { printf("%s - KW_VSE\n", yytext); }
+выбор { printf("%s - KW_VIBOR\n", yytext); }
+при { printf("%s - KW_PRI\n", yytext); }
+нц { printf("%s - KW_NC\n", yytext); }
+кц { printf("%s - KW_KC\n", yytext); }
+кц_при { printf("%s - KW_KC_PRI\n", yytext); }
+раз { printf("%s - KW_RAZ\n", yytext); }
+пока { printf("%s - KW_POKA\n", yytext); }
+для { printf("%s - KW_DLYA\n", yytext); }
+от { printf("%s - KW_OT\n", yytext); }
+до { printf("%s - KW_DO\n", yytext); }
+шаг { printf("%s - KW_SHAG\n", yytext); }
 
-цел { printf("Found TYPE_CEL: %s\n", yytext); }
-вещ { printf("Found TYPE_VESH: %s\n", yytext); }
-лог { printf("Found TYPE_LOG: %s\n", yytext); }
-сим { printf("Found TYPE_SIM: %s\n", yytext); }
-лит { printf("Found TYPE_LIT: %s\n", yytext); }
+цел { printf("%s - TYPE_CEL\n", yytext); }
+вещ { printf("%s - TYPE_VESH\n", yytext); }
+лог { printf("%s - TYPE_LOG\n", yytext); }
+сим { printf("%s - TYPE_SIM\n", yytext); }
+лит { printf("%s - TYPE_LIT\n", yytext); }
 
-"+" { printf("Found OPERATOR_PLUS: %s\n", yytext); }
-"-" { printf("Found OPERATOR_MINUS: %s\n", yytext); }
-"*" { printf("Found OPERATOR_MUL: %s\n", yytext); }
-"/" { printf("Found OPERATOR_DIV: %s\n", yytext); }
-"%" { printf("Found OPERATOR_MOD: %s\n", yytext); }
+"|" {bufferString[0] = 0; yy_push_state(END_OF_LINE_COMMENT);}
+<END_OF_LINE_COMMENT>[^\n]* {strcat(bufferString, yytext);}
+<END_OF_LINE_COMMENT>[\r\n] {printf("(%s) - END_OF_LINE_COMMENT\n", bufferString);  line += 1; yy_pop_state();}
+<END_OF_LINE_COMMENT><<EOF>> {printf("(%s) - END_OF_LINE_COMMENT\n", bufferString); BEGIN(INITIAL);}
 
-"=" { printf("Found OPERATOR_ASSIGNMENT: %s\n", yytext); }
-"==" { printf("Found OPERATOR_EQUAL: %s\n", yytext); }
-"!=" { printf("Found OPERATOR_NOT_EQUAL: %s\n", yytext); }
-"<" { printf("Found OPERATOR_LESS: %s\n", yytext); }
-">" { printf("Found OPERATOR_MORE: %s\n", yytext); }
-"<=" { printf("Found OPERATOR_LESS_OR_EQUAL: %s\n", yytext); }
-">=" { printf("Found OPERATOR_MORE_OR_EQUAL: %s\n", yytext); }
 
-"&" { printf("Found OPERATOR_AMPERSAND: %s\n", yytext); }
-"|" { printf("Found OPERATOR_BIT_OR: %s\n", yytext); }
-"!" { printf("Found OPERATOR_BIT_NOT: %s\n", yytext); }
-"^" { printf("Found OPERATOR_BIT_XOR: %s\n", yytext); }
-"<<" { printf("Found OPERATOR_BIT_LEFT_SHIFT: %s\n", yytext); }
-">>" { printf("Found OPERATOR_BIT_RIGHT_SHIFT: %s\n", yytext); }
+"+" { printf("%s - OPERATOR_PLUS\n", yytext); }
+"-" { printf("%s - OPERATOR_MINUS\n", yytext); }
+"*" { printf("%s - OPERATOR_MUL\n", yytext); }
+"/" { printf("%s - OPERATOR_DIV\n", yytext); }
 
-"&&" { printf("Found OPERATOR_AND: %s\n", yytext); }
-"||" { printf("Found OPERATOR_OR: %s\n", yytext); }
+":=" { printf("%s - OPERATOR_ASSIGNMENT\n", yytext); }
+"=" { printf("%s - OPERATOR_EQUAL\n", yytext); }
+"<>" { printf("%s - OPERATOR_NOT_EQUAL\n", yytext); }
+"<" { printf("%s - OPERATOR_LESS\n", yytext); }
+">" { printf("%s - OPERATOR_MORE\n", yytext); }
+"<=" { printf("%s - OPERATOR_LESS_OR_EQUAL\n", yytext); }
+">=" { printf("%s - OPERATOR_MORE_OR_EQUAL\n", yytext); }
 
-"+=" { printf("Found OPERATOR_PLUS_ASSIGNMENT: %s\n", yytext); }
-"-=" { printf("Found OPERATOR_MINUS_ASSIGNMENT: %s\n", yytext); }
-"*=" { printf("Found OPERATOR_MUL_ASSIGNMENT: %s\n", yytext); }
-"/=" { printf("Found OPERATOR_DIV_ASSIGNMENT: %s\n", yytext); }
-"%=" { printf("Found OPERATOR_MOD_ASSIGNMENT: %s\n", yytext); }
-"&=" { printf("Found OPERATOR_BIT_AND_ASSIGNMENT: %s\n", yytext); }
-"|=" { printf("Found OPERATOR_BIT_OR_ASSIGNMENT: %s\n", yytext); }
-"^=" { printf("Found OPERATOR_BIT_XOR_ASSIGNMENT: %s\n", yytext); }
-"<<=" { printf("Found OPERATOR_BIT_LEFT_SHIFT_ASSIGNMENT: %s\n", yytext); }
-">>=" { printf("Found OPERATOR_BIT_RIGHT_SHIFT_ASSIGNMENT: %s\n", yytext); }
 
-"." { printf("Found OPERATOR_POINT: %s\n", yytext); }
-".." { printf("Found OPERATOR_RANGE: %s\n", yytext); }
-"..=" { printf("Found OPERATOR_RANGE_ASSIGMENT: %s\n", yytext); }
-"->" { printf("Found OPERATOR_ARROW: %s\n", yytext); }
-
-"(" { printf("Found LEFT_ROUND_BRACKET: %s\n", yytext); }
-")" { printf("Found RIGHT_ROUND_BRACKET: %s\n", yytext); }
-"[" { printf("Found LEFT_SQUARE_BRACKET: %s\n", yytext); }
-"]" { printf("Found RIGHT_SQUARE_BRACKET: %s\n", yytext); }
-"{" { printf("Found LEFT_FIGURE_BRACKET: %s\n", yytext); }
-"}" { printf("Found RIGHT_FIGURE_BRACKET: %s\n", yytext); }
+"(" { printf("%s - LEFT_ROUND_BRACKET\n", yytext); }
+")" { printf("%s - RIGHT_ROUND_BRACKET\n", yytext); }
+"[" { printf("%s - LEFT_SQUARE_BRACKET\n", yytext); }
+"]" { printf("%s - RIGHT_SQUARE_BRACKET\n", yytext); }
+"{" { printf("%s - LEFT_FIGURE_BRACKET\n", yytext); }
+"}" { printf("%s - RIGHT_FIGURE_BRACKET\n", yytext); }
 
 "," { printf("Found COMMA: %s\n", yytext); }
 ";" { printf("Found SEMICOLON: %s\n", yytext); }
 ":" { printf("Found COLON: %s\n", yytext); }
-"::" { printf("Found TWO_COLON: %s\n", yytext); }
+
+[0-9]+ {printf("%s - INT_NUMBER\n", yytext);}
+
+$[0-9A-F]+ {printf("%s - HEX_INT_NUMBER\n", yytext);}
+
+[A-Za-z0-9_А-Яа-я@!]* {printf("%s - IDENTIFIER\n", yytext);}
+
+[0-9]*\.[0-9]+ {printf("%s - DOUBLE_NUMBER\n", yytext);} 
+
+[0-9]+\.?[0-9]*(e(\-|\+)?[0-9]+)? {printf("%s - EXP_DOUBLE_NUMBER\n", yytext);} 
+
+(\"[^"\n]?\")|(\'[^\'\n]?\') {printf("%s - CHAR\n", yytext);}
+
+(\"[^"\n]*\")|(\'[^\'\n]*\') {printf("%s - STRING\n", yytext);} 
+
+
+
+[ \t] {
+    // Игнорирование лишних пробелов и табуляций. 
+}
+
+. {
+    bufferString[0] = 0;
+    strcat(bufferString, yytext);
+    printf("%s - UNRECOGNIZED TOKEN.", bufferString);
+}
 
 %%
 
 int main(int argc, char** argv) {
 
-	//_setmode(_fileno(stdout), _O_U16TEXT);
-    //_setmode(_fileno(stdin),  _O_U16TEXT);
-    //_setmode(_fileno(stderr), _O_U16TEXT);
-	
-	//setlocale(LC_ALL, "Russian");
-	//std::system("chcp 1251");
-	
-	//SetConsoleCP(65001);
-	//SetConsoleOutputCP(65001);
 	setlocale(LC_CTYPE, "Russian");
-	
-	
-	//SetConsoleCP(1251);
-    //SetConsoleOutputCP(1251);
-    
-	if (argc != 2) {
+
+    if (argc != 2) {
         printf("Filename is not found");
         return 1;
     }
 
     const char *filename= argv[1];
-    
+
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         printf("File opening error");
