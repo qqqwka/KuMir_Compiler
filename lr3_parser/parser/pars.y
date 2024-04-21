@@ -1,8 +1,102 @@
+%{
+    #include <iostream>
+    #include "classesnodes.h"
+    void yyerror(char const* s);
+    extern int yylex(void);
+    using namespace std;
+    ProgramNode* global_program;
+%}
+
+%union {
+		int int_literal;
+		string* string_literal;
+		string* identifier;
+		bool bool_literal;
+		float float_literal;
+		char char_literal;
+		
+		ProgramNode* prg;
+		ExprNode* expr;
+		ExprListNode* expr_list;
+		StmtNode* stmt;
+		BlockStmtNode* block_stmt;
+		StmtListNode* stmt_list;
+		ElementNode* element;
+		ElementListNode* element_list;
+		//ID '(' ExpressionList ')' 
+		//ID 
+		//FuncDeclNode* function_stmt;
+		//FuncParamNode* function_param;
+		ParamListNode* param_list;
+		ParamNode* param;
+		ParamModifierNode* param_modif;
+		CycleStmtNode* cycle_stmt;
+		WhileStmtNode* while_stmt;
+		ForStmtNode* for_stmt;
+		IfStmtNode* if_stmt;
+		TimesStmtNode* times_stmt;
+		TypeNode* type;
+		ArrTypeNode* arr_type;
+		SwitchCaseStmtNode* switchcase_stmt;
+		VarListNode* var_list;
+		VarNode* var;
+		VarDeclarationNode* var_decl;
+		CaseListNode* case_list;
+		SimpleCaseNode* simple_case;
+		OutputNode* output_list;
+		InputNode* input_list;
+
+		AlgImplNode* alg_impl;
+		AlgFuncImplNode* alg_func_impl;
+		AlgProcImplNode* alg_proc_impl;
+		ParamDeclarationListNode* param_decl_list;
+}
+
+%type <prg>Program
+%type <element_list>ProgramElementList
+%type <element>ProgramElement 
+%type <block_stmt>BlockStatement
+%type <stmt_list>StatementList
+%type <stmt>Statement
+%type <input_stmt>InputList
+%type <output_stmt>OutputList
+%type <cycle_stmt>CycleStatement 
+%type <times_stmt>TimesStatement 
+%type <if_stmt>IfStatement
+%type <while_stmt>WhileStatement 
+%type <for_stmt>ForStatement
+%type <switchcase_stmt>SwitchCaseStatement 
+%type <case_list>CaseList
+%type <simple_case>SimpleCase
+%type <expr_list>ExpressionList
+%type <expr>Expression 
+%type <type>Type
+%type <type>ArrType
+%type <alg_impl>AlgorithmImplementation 
+%type <alg_func_impl>AlgorithmFunctionImplementation 
+%type <alg_proc_impl>AlgorithmProcedureImplementation 
+%type <var_decl>VarDeclaration 
+%type <var>Var
+%type <var_list>VarList 
+%type <param_decl_list>ParamDeclarationList 
+%type <param_list>ParamList 
+%type <param_modif>ParamModifier 
+%type <param>Param
+
+%type <int_literal>INT_LITERAL
+%type <string_literal>STRING_LITERAL
+%type <identifier>ID
+%type <bool_literal>TRUE
+%type <bool_literal>FALSE
+%type <float_literal>FLOAT_LITERAL
+%type <char_literal>CHAR_LITERAL
+
+
 
 %token ALG BEGIN END ARG RES ARGRES DANO NADO NS ENDL
 %token INT FLOAT BOOL CHAR STRING TAB INTTAB FLOATTAB BOOLTAB CHARTAB STRINGTAB
 %token ID INPUT OUTPUT
-%token NOT IF THEN ELSE CYCLE_BEGIN CYCLE_END CYCLE_END_IF DONE STEP FROM TO SWITCH CASE WHILE FOR TIMES
+%token TRUE FALSE NOT IF THEN ELSE CYCLE_BEGIN CYCLE_END CYCLE_END_IF DONE STEP FROM TO SWITCH CASE WHILE FOR TIMES
 %token INT_LITERAL FLOAT_LITERAL CHAR_LITERAL STRING_LITERAL BOOL_LITERAL
 
 %left ','
@@ -15,8 +109,11 @@
 %left '+' '-'
 %left '*' '/'
 %left UMINUS UPLUS
+%left POW
 %right NOT
 %nonassoc '(' ')' '[' ']'
+
+%start Program
 
 %% 
 
@@ -42,7 +139,7 @@ StatementList: Statement
 Statement: InputList
 		 | OutputList
 		 | ID '(' ExpressionList ')' 
-		 | ID 
+		 | ID { $$ = $1 }
 		 | Expression ASSIGN Expression
 		 | CycleStatement
          | WhileStatement
@@ -88,8 +185,11 @@ SwitchCaseStatement: SWITCH Expression EndlList CaseList DONE
 				   | SWITCH Expression EndlList CaseList ELSE Expression EndlList DONE 
 				   ;
 
-CaseList: CASE Expression ':' EndlList BlockStatement
-		| CaseList CASE Expression ':' EndlList BlockStatement
+SimpleCase: CASE Expression ':' EndlList BlockStatement
+		  ;
+
+CaseList: SimpleCase
+		| CaseList SimpleCase
 		;
 
 EndlOpt: /* empty */
@@ -117,6 +217,7 @@ Expression: INT_LITERAL
           | Expression '/' Expression
           | Expression '<' Expression
           | Expression '>' Expression
+		  | Expression POW Expression
           | Expression AND Expression
           | Expression OR  Expression
           | Expression GREATER_EQUAL  Expression
@@ -194,3 +295,10 @@ ParamModifier: ARG
 Param: VarDeclaration
 	 | ParamModifier VarDeclaration
 	 ;
+	 
+%%
+
+void yyerror(char const *s)
+{
+       printf("%s\n", s);
+}

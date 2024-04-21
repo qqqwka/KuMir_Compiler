@@ -15,6 +15,7 @@
 %left '+' '-'
 %left '*' '/'
 %left UMINUS UPLUS
+%left POW
 %right NOT
 %nonassoc '(' ')' '[' ']'
 
